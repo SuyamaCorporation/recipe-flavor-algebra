@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recipe Flavor Algebra</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-rose-50 min-h-screen">
+<div class="max-w-5xl mx-auto p-4">
+  <header class="text-center py-6">
+    <h1 class="text-3xl font-bold text-rose-900">🧪 Recipe Flavor Algebra</h1>
+    <p class="text-rose-700 mt-1">Define flavor vectors, combine ingredients, discover unexpected flavor bridges</p>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Ingredient Definition -->
+    <div class="space-y-4">
+      <div class="bg-white rounded-2xl shadow p-5 border border-rose-200">
+        <h2 class="font-semibold text-rose-800 mb-4">Define Ingredient</h2>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs font-medium text-gray-600">Ingredient Name</label>
+            <input id="ingName" type="text" placeholder="e.g. Miso Paste" class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-600">Cuisine Origin</label>
+            <input id="ingCuisine" type="text" placeholder="Japanese, Italian..." class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400">
+          </div>
+          <p class="text-xs font-semibold text-gray-500 uppercase mt-2">Flavor Profile (0–10)</p>
+          <div id="flavorSliders" class="space-y-2"></div>
+          <button onclick="addIngredient()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 rounded-lg text-sm transition">+ Add Ingredient</button>
+        </div>
+      </div>
+
+      <!-- Ingredient Library -->
+      <div class="bg-white rounded-2xl shadow p-4 border border-rose-200">
+        <h2 class="font-semibold text-rose-800 mb-3">Ingredient Library</h2>
+        <div id="ingredientLibrary" class="space-y-1 max-h-56 overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <!-- Compose Recipe -->
+    <div class="space-y-4">
+      <div class="bg-white rounded-2xl shadow p-5 border border-orange-200">
+        <h2 class="font-semibold text-orange-800 mb-4">Compose Recipe</h2>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs font-medium text-gray-600">Recipe Name</label>
+            <input id="recipeName" type="text" placeholder="My dish..." class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-600">Add Ingredient</label>
+            <div class="flex gap-2 mt-1">
+              <select id="recipeIngSelect" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"></select>
+              <input id="recipeIngQty" type="number" min="0.1" step="0.1" value="1" placeholder="qty" class="w-16 border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+              <button onclick="addToRecipe()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm">+</button>
+            </div>
+          </div>
+          <div id="currentRecipeIngredients" class="space-y-1 min-h-10"></div>
+          <button onclick="analyzeRecipe()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 rounded-lg text-sm transition">⚗️ Analyze Flavor</button>
+          <button onclick="saveRecipe()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 rounded-lg text-sm transition">💾 Save Recipe</button>
+        </div>
+      </div>
+
+      <!-- Saved Recipes -->
+      <div class="bg-white rounded-2xl shadow p-4 border border-orange-100">
+        <h2 class="font-semibold text-orange-700 mb-3">Saved Recipes</h2>
+        <div id="savedRecipesList" class="space-y-1 max-h-48 overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <!-- Analysis Panel -->
+    <div class="space-y-4">
+      <div class="bg-white rounded-2xl shadow p-5 border border-purple-200">
+        <h2 class="font-semibold text-purple-800 mb-4">Flavor Analysis</h2>
+        <div id="radarChart" class="flex justify-center mb-4"></div>
+        <div id="flavorBreakdown" class="space-y-2"></div>
+      </div>
+
+      <!-- Flavor Bridges -->
+      <div class="bg-white rounded-2xl shadow p-5 border border-teal-200">
+        <h2 class="font-semibold text-teal-800 mb-3">🌉 Flavor Bridges</h2>
+        <p class="text-xs text-gray-500 mb-3">Ingredients from other cuisines with similar profiles</p>
+        <div id="flavorBridges" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const FLAVOR_DIMS = [
+  { key: 'umami',     label: 'Umami',     color: '#7c3aed' },
+  { key: 'heat',      label: 'Heat',      color: '#ef4444' },
+  { key: 'acidity',   label: 'Acidity',   color: '#facc15' },
+  { key: 'sweetness', label: 'Sweetness', color: '#f472b6' },
+  { key: 'fatness',   label: 'Richness',  color: '#f59e0b' },
+  { key: 'bitterness',label: 'Bitter',    color: '#84cc16' },
+  { key: 'saltiness', label: 'Salty',     color: '#60a5fa' },
+];
+
+const PRESET_INGREDIENTS = [
+  {id:'p1',name:'Miso Paste',cuisine:'Japanese',umami:9,heat:1,acidity:3,sweetness:2,fatness:4,bitterness:2,saltiness:8},
+  {id:'p2',name:'Parmesan',cuisine:'Italian',umami:9,heat:0,acidity:2,sweetness:1,fatness:7,bitterness:2,saltiness:7},
+  {id:'p3',name:'Soy Sauce',cuisine:'Asian',umami:8,heat:0,acidity:1,sweetness:2,fatness:1,bitterness:2,saltiness:9},
+  {id:'p4',name:'Lemon Juice',cuisine:'Mediterranean',umami:1,heat:0,acidity:9,sweetness:2,fatness:0,bitterness:3,saltiness:1},
+  {id:'p5',name:'Chili Pepper',cuisine:'Mexican',umami:2,heat:9,acidity:4,sweetness:2,fatness:1,bitterness:1,saltiness:1},
+  {id:'p6',name:'Butter',cuisine:'French',umami:2,heat:0,acidity:1,sweetness:2,fatness:10,bitterness:0,saltiness:3},
+  {id:'p7',name:'Tamarind',cuisine:'Indian',umami:3,heat:1,acidity:8,sweetness:5,fatness:1,bitterness:3,saltiness:2},
+  {id:'p8',name:'Fish Sauce',cuisine:'Thai',umami:10,heat:1,acidity:2,sweetness:1,fatness:1,bitterness:1,saltiness:9},
+  {id:'p9',name:'Balsamic Vinegar',cuisine:'Italian',umami:3,heat:0,acidity:7,sweetness:5,fatness:0,bitterness:4,saltiness:1},
+  {id:'p10',name:'Dark Chocolate',cuisine:'Western',umami:2,heat:0,acidity:3,sweetness:5,fatness:6,bitterness:8,saltiness:1},
+];
+
+let ingredients = JSON.parse(localStorage.getItem('flavor_ingredients') || 'null') || [...PRESET_INGREDIENTS];
+let recipes = JSON.parse(localStorage.getItem('flavor_recipes') || '[]');
+let currentRecipe = [];
+
+function save() {
+  localStorage.setItem('flavor_ingredients', JSON.stringify(ingredients));
+  localStorage.setItem('flavor_recipes', JSON.stringify(recipes));
+}
+
+// Build sliders
+function buildSliders() {
+  document.getElementById('flavorSliders').innerHTML = FLAVOR_DIMS.map(d => `
+    <div class="flex items-center gap-2">
+      <label class="text-xs text-gray-500 w-16 shrink-0">${d.label}</label>
+      <input type="range" id="slider-${d.key}" min="0" max="10" value="5"
+        oninput="document.getElementById('sv-${d.key}').textContent=this.value"
+        class="flex-1" style="accent-color:${d.color}">
+      <span id="sv-${d.key}" class="text-xs font-bold text-gray-600 w-4">5</span>
+    </div>`).join('');
+}
+
+function getSliderValues() {
+  const vals = {};
+  FLAVOR_DIMS.forEach(d => { vals[d.key] = parseInt(document.getElementById(`slider-${d.key}`).value); });
+  return vals;
+}
+
+function addIngredient() {
+  const name = document.getElementById('ingName').value.trim();
+  if (!name) return alert('Name required');
+  const ing = {
+    id: Date.now().toString(),
+    name,
+    cuisine: document.getElementById('ingCuisine').value.trim() || 'Unknown',
+    ...getSliderValues()
+  };
+  ingredients.push(ing);
+  save();
+  renderLibrary();
+  updateIngSelect();
+  document.getElementById('ingName').value = '';
+  document.getElementById('ingCuisine').value = '';
+}
+
+function renderLibrary() {
+  document.getElementById('ingredientLibrary').innerHTML = ingredients.map(ing => `
+    <div class="flex items-center justify-between text-xs bg-rose-50 rounded-lg px-2 py-1">
+      <div>
+        <span class="font-medium text-gray-800">${ing.name}</span>
+        <span class="text-gray-400 ml-1">${ing.cuisine}</span>
+      </div>
+      <button onclick="ingredients=ingredients.filter(x=>x.id!=='${ing.id}');save();renderLibrary();updateIngSelect()" class="text-gray-300 hover:text-red-400">✕</button>
+    </div>`).join('');
+}
+
+function updateIngSelect() {
+  document.getElementById('recipeIngSelect').innerHTML = ingredients.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+}
+
+function addToRecipe() {
+  const id = document.getElementById('recipeIngSelect').value;
+  const qty = parseFloat(document.getElementById('recipeIngQty').value) || 1;
+  const ing = ingredients.find(i => i.id === id);
+  if (!ing) return;
+  const existing = currentRecipe.find(r => r.id === id);
+  if (existing) existing.qty += qty;
+  else currentRecipe.push({ id, qty, name: ing.name });
+  renderCurrentRecipe();
+}
+
+function renderCurrentRecipe() {
+  document.getElementById('currentRecipeIngredients').innerHTML = currentRecipe.map(r => `
+    <div class="flex items-center justify-between text-xs bg-orange-50 rounded-lg px-2 py-1">
+      <span>${r.name} ×${r.qty}</span>
+      <button onclick="currentRecipe=currentRecipe.filter(x=>x.id!=='${r.id}');renderCurrentRecipe()" class="text-gray-300 hover:text-red-400">✕</button>
+    </div>`).join('');
+}
+
+function computeFlavorVector(recipeIng) {
+  const total = recipeIng.reduce((s, r) => s + r.qty, 0);
+  const vec = {};
+  FLAVOR_DIMS.forEach(d => { vec[d.key] = 0; });
+  recipeIng.forEach(r => {
+    const ing = ingredients.find(i => i.id === r.id);
+    if (!ing) return;
+    FLAVOR_DIMS.forEach(d => { vec[d.key] += (ing[d.key] * r.qty) / total; });
+  });
+  return vec;
+}
+
+function analyzeRecipe() {
+  if (currentRecipe.length === 0) return alert('Add ingredients first');
+  const vec = computeFlavorVector(currentRecipe);
+  renderRadar(vec);
+  renderBreakdown(vec);
+  findBridges(vec);
+}
+
+function saveRecipe() {
+  const name = document.getElementById('recipeName').value.trim() || `Recipe ${recipes.length + 1}`;
+  if (currentRecipe.length === 0) return alert('Add ingredients first');
+  const vec = computeFlavorVector(currentRecipe);
+  recipes.push({ id: Date.now().toString(), name, ingredients: [...currentRecipe], vector: vec });
+  save();
+  renderSavedRecipes();
+  document.getElementById('recipeName').value = '';
+  currentRecipe = [];
+  renderCurrentRecipe();
+}
+
+function renderRadar(vec) {
+  const cx = 100, cy = 100, r = 75;
+  const n = FLAVOR_DIMS.length;
+  const angleStep = (2 * Math.PI) / n;
+
+  function point(dim, value, maxVal = 10) {
+    const idx = FLAVOR_DIMS.findIndex(d => d.key === dim);
+    const angle = idx * angleStep - Math.PI / 2;
+    const dist = (value / maxVal) * r;
+    return { x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist };
+  }
+
+  const gridCircles = [2,4,6,8,10].map(v =>
+    `<circle cx="${cx}" cy="${cy}" r="${(v/10)*r}" fill="none" stroke="#e5e7eb" stroke-width="0.5"/>`
+  ).join('');
+
+  const axes = FLAVOR_DIMS.map((d, i) => {
+    const angle = i * angleStep - Math.PI / 2;
+    const ex = cx + Math.cos(angle) * r;
+    const ey = cy + Math.sin(angle) * r;
+    const lx = cx + Math.cos(angle) * (r + 14);
+    const ly = cy + Math.sin(angle) * (r + 14);
+    return `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" stroke="#d1d5db" stroke-width="0.5"/>
+      <text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" font-size="8" fill="${d.color}">${d.label}</text>`;
+  }).join('');
+
+  const pts = FLAVOR_DIMS.map(d => point(d.key, vec[d.key]));
+  const polyPoints = pts.map(p => `${p.x},${p.y}`).join(' ');
+
+  document.getElementById('radarChart').innerHTML = `<svg width="200" height="200" viewBox="0 0 200 200">
+    ${gridCircles}${axes}
+    <polygon points="${polyPoints}" fill="rgba(236,72,153,0.2)" stroke="#ec4899" stroke-width="2"/>
+    ${pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="#ec4899"/>`).join('')}
+  </svg>`;
+}
+
+function renderBreakdown(vec) {
+  document.getElementById('flavorBreakdown').innerHTML = FLAVOR_DIMS.map(d => {
+    const pct = Math.round((vec[d.key] / 10) * 100);
+    return `<div>
+      <div class="flex justify-between text-xs mb-0.5">
+        <span class="text-gray-600">${d.label}</span>
+        <span class="font-semibold" style="color:${d.color}">${vec[d.key].toFixed(1)}</span>
+      </div>
+      <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div class="h-full rounded-full" style="width:${pct}%;background:${d.color}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function cosineSimilarity(a, b) {
+  const keys = FLAVOR_DIMS.map(d => d.key);
+  const dot = keys.reduce((s,k) => s + a[k]*b[k], 0);
+  const magA = Math.sqrt(keys.reduce((s,k) => s + a[k]**2, 0));
+  const magB = Math.sqrt(keys.reduce((s,k) => s + b[k]**2, 0));
+  return magA && magB ? dot / (magA * magB) : 0;
+}
+
+function findBridges(vec) {
+  const usedCuisines = new Set(currentRecipe.map(r => ingredients.find(i=>i.id===r.id)?.cuisine).filter(Boolean));
+  const candidates = ingredients
+    .filter(i => !currentRecipe.find(r => r.id === i.id) && !usedCuisines.has(i.cuisine))
+    .map(i => ({ ...i, sim: cosineSimilarity(vec, i) }))
+    .sort((a,b) => b.sim - a.sim)
+    .slice(0, 5);
+
+  const container = document.getElementById('flavorBridges');
+  if (candidates.length === 0) {
+    container.innerHTML = '<p class="text-gray-400 text-xs italic">Add more ingredients from different cuisines</p>';
+    return;
+  }
+  container.innerHTML = candidates.map(c => `
+    <div class="flex items-center gap-2 text-xs bg-teal-50 rounded-lg px-3 py-2">
+      <div class="flex-1">
+        <span class="font-medium text-gray-800">${c.name}</span>
+        <span class="text-gray-400 ml-1">(${c.cuisine})</span>
+      </div>
+      <div class="text-teal-600 font-bold">${Math.round(c.sim*100)}% match</div>
+    </div>`).join('');
+}
+
+function renderSavedRecipes() {
+  const container = document.getElementById('savedRecipesList');
+  if (recipes.length === 0) { container.innerHTML = '<p class="text-gray-400 text-xs italic">No saved recipes</p>'; return; }
+  container.innerHTML = recipes.map(r => `
+    <div class="flex items-center justify-between text-xs bg-orange-50 rounded-lg px-2 py-1">
+      <button onclick="loadRecipe('${r.id}')" class="font-medium text-orange-800 hover:underline text-left flex-1">${r.name}</button>
+      <button onclick="recipes=recipes.filter(x=>x.id!=='${r.id}');save();renderSavedRecipes()" class="text-gray-300 hover:text-red-400 ml-2">✕</button>
+    </div>`).join('');
+}
+
+function loadRecipe(id) {
+  const recipe = recipes.find(r => r.id === id);
+  if (!recipe) return;
+  currentRecipe = [...recipe.ingredients];
+  renderCurrentRecipe();
+  renderRadar(recipe.vector);
+  renderBreakdown(recipe.vector);
+  findBridges(recipe.vector);
+}
+
+buildSliders();
+renderLibrary();
+updateIngSelect();
+renderSavedRecipes();
+</script>
+</body>
+</html>
